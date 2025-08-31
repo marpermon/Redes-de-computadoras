@@ -33,7 +33,7 @@ class PC:
     # --- helpers de serialización ---
     @staticmethod
     def _to_bits(n, width):
-        return format(n, f'0{width}b')
+        return format(int(n), f'0{width}b')
     
     @staticmethod
     def _from_bits(bits):
@@ -90,7 +90,7 @@ class PC:
 
     def capa_enlace(self, data, enviar, dst_pc=None):
         if enviar:  # Recibe paquete de capa 3 para convertirlo en trama
-            trama = f"{self.self.mac},{self.dst_pc.mac},{data}"envir, 
+            trama = f"{self.mac},{dst_pc.mac},{data}" 
             print(f"Capa 2 (Enlace de Datos): {trama}")
             return trama
         
