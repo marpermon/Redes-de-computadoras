@@ -56,7 +56,7 @@ class PC:
             return payload
         
         else: # Recibe segmento de capa 3 para convertirlo en payload
-            port, resto = data.split(',')
+            port, *resto = data.split(',')
             mensaje = ','.join(resto)
             print(f"Capa 5 (Aplicación) - Desempaquetado: {mensaje}")
             return mensaje 
@@ -69,7 +69,7 @@ class PC:
             return segmento
     
         else: # Recibe segmento de capa 3 para convertirlo en payload
-            port, resto = data.split(',')
+            port, *resto = data.split(',')
             payload = ','.join(resto)
             print(f"Capa 4 (Transporte) - Desempaquetado: {payload}")
             return payload 
@@ -81,8 +81,8 @@ class PC:
             return paquete
         
         else: # Recibe paquete de capa 2 para convertirlo en segmento
-            origin_ip, dst_pc_ip, resto = data.split(',')
-            if dst_pc_ip != self.ip:
+            origin_ip, dst_pc_ip, *resto = data.split(',')
+            if int(dst_pc_ip) != self.ip:
                 raise ValueError(f"La IP {dst_pc_ip} no coincide con la IP esperada {self.ip}.")
             segmento = ','.join(resto)
             print(f"Capa 3 (Red) - Desempaquetado: {segmento}")
@@ -95,8 +95,9 @@ class PC:
             return trama
         
         else: # Recibe trama de capa 1 para convertirla en paquete
-            origin_mac, dst_pc_mac, resto = data.split(',')
-            if dst_pc_mac != self.mac:
+            print(data.split(','))
+            origin_mac, dst_pc_mac, *resto = data.split(',')
+            if int(dst_pc_mac) != self.mac:
                 raise ValueError(f"La MAC {dst_pc_mac} no coincide con la MAC esperada {self.mac}.")
             paquete = ','.join(resto)
             print(f"Capa 2 (Enlace de Datos) - Desempaquetado: {paquete}")
@@ -105,26 +106,26 @@ class PC:
     def capa_fisica(self, data, enviar):
         if enviar: # Recibe trama de capa 2 para convertirla en bits
             origin_mac, dst_pc_mac, origin_ip, dst_pc_ip, port, app_code, mensaje = data.split(',')
-            bits = ""
-            bits = bits + self._to_bits(origin_mac, MAC)         # MAC src 8b
-            bits = bits + self._to_bits(dst_pc_mac, MAC)       # MAC dst 8b
-            bits = bits + self._to_bits(origin_ip, IP)           # IP src 8b
-            bits = bits + self._to_bits(dst_pc_ip, IP)         # IP dst 8b
-            bits = bits + self._to_bits(port, Puerto)          # Puerto 16b
-            bits = bits + self._to_bits(app_code, AppCodigo)   # AppCodigo 16b
+            data = ""
+            data = data + self._to_bits(origin_mac, MAC)         # MAC src 8b
+            data = data + self._to_bits(dst_pc_mac, MAC)       # MAC dst 8b
+            data = data + self._to_bits(origin_ip, IP)           # IP src 8b
+            data = data + self._to_bits(dst_pc_ip, IP)         # IP dst 8b
+            data = data + self._to_bits(port, Puerto)          # Puerto 16b
+            data = data + self._to_bits(app_code, AppCodigo)   # AppCodigo 16b
             payload_ascii = f"{mensaje}"
-            bits = bits + self._ascii_bits(payload_ascii)      # ASCII
-            print(f"Capa 1 (Física): {bits}")
-            return bits
+            data = data + self._ascii_bits(payload_ascii)      # ASCII
+            print(f"Capa 1 (Física): {data}")
+            return data
         
         else: # Manda bit como trama a capa 2
-            origin_mac = self._from_bits(bits[:self.MAC])           # 8b MAC origen
-            dst_pc_mac = self._from_bits(bits[self.MAC:self.MAC*2])  # 8b MAC destino
-            origin_ip = self._from_bits(bits[self.MAC*2:self.MAC*2+self.IP])  # 8b IP origen
-            dst_pc_ip = self._from_bits(bits[self.MAC*2+self.IP:self.MAC*2+self.IP*2])  # 8b IP destino
-            port = self._from_bits(bits[self.MAC*2+self.IP*2:self.MAC*2+self.IP*2+self.Puerto])  # 16b Puerto
-            app_code = self._from_bits(bits[self.MAC*2+self.IP*2+self.Puerto:self.MAC*2+self.IP*2+self.Puerto+self.AppCodigo])  # 16b Código App
-            payload_bits = bits[self.MAC*2+self.IP*2+self.Puerto+self.AppCodigo:]  # El resto son los datos del mensaje
+            origin_mac = self._from_bits(data[:MAC])           # 8b MAC origen
+            dst_pc_mac = self._from_bits(data[MAC:MAC*2])  # 8b MAC destino
+            origin_ip = self._from_bits(data[MAC*2:MAC*2+IP])  # 8b IP origen
+            dst_pc_ip = self._from_bits(data[MAC*2+IP:MAC*2+IP*2])  # 8b IP destino
+            port = self._from_bits(data[MAC*2+IP*2:MAC*2+IP*2+Puerto])  # 16b Puerto
+            app_code = self._from_bits(data[MAC*2+IP*2+Puerto:MAC*2+IP*2+Puerto+AppCodigo])  # 16b Código App
+            payload_bits = data[MAC*2+IP*2+Puerto+AppCodigo:]  # El resto son los datos del mensaje
 
             # Convertir el payload de bits ASCII a texto
             mensaje = self._bits_ascii(payload_bits)
