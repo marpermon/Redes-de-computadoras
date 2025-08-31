@@ -10,13 +10,16 @@ class PC:
         "WhatsApp": 1,
         "Facebook": 2,
     }
+    
+    # Se utilizará protocolo TCP para conexiones confiables
+
     APP_PORT = {
         "Telegram": 443,
         "WhatsApp": 443,
         "Facebook": 443,
     }
 
-    def __init__(self, name, mac_int, ip):
+    def __init__(self, name, mac, ip):
         """
         Inicializacion objeto PC
         name: 'PC#'
@@ -24,7 +27,7 @@ class PC:
         ip: entero 0..255 
         """
         self.name = name
-        self.mac = mac_int
+        self.mac = mac
         self.ip = ip
 
     # --- helpers de serialización ---
@@ -55,7 +58,7 @@ class PC:
         return payload_t3
 
     def capa_enlace(self, dst_pc, payload_t3):
-        payload_t2 = f"{self._fmt_mac(self.mac)},{self._fmt_mac(dst_pc.mac)},{payload_t3}"
+        payload_t2 = f"{self.self.mac},{self.dst_pc.mac},{payload_t3}"
         print(f"Capa 2 (Enlace de Datos): {payload_t2}")
         return payload_t2
 
@@ -63,21 +66,16 @@ class PC:
         if enviar:
             self_mac, dst_pc_mac, self_ip, dst_pc_ip, port, app_code, mensaje = payload_t4.split(',')
             bits = ""
-            bits = bits + self._to_bits(self_mac, MAC)     # MAC src 8b
-            bits = bits + self._to_bits(dst_pc_mac, MAC)   # MAC dst 8b
-            bits = bits + self._to_bits(self_ip, IP)       # IP src 8b
-            bits = bits + self._to_bits(dst_pc_ip, IP)     # IP dst 8b
-            bits = bits + self._to_bits(port, Puerto)      # Puerto 16b
+            bits = bits + self._to_bits(self_mac, MAC)         # MAC src 8b
+            bits = bits + self._to_bits(dst_pc_mac, MAC)       # MAC dst 8b
+            bits = bits + self._to_bits(self_ip, IP)           # IP src 8b
+            bits = bits + self._to_bits(dst_pc_ip, IP)         # IP dst 8b
+            bits = bits + self._to_bits(port, Puerto)          # Puerto 16b
             bits = bits + self._to_bits(app_code, AppCodigo)   # AppCodigo 16b
             payload_ascii = f"{mensaje}"
             bits = bits + self._ascii_bits(payload_ascii)      # ASCII
             print(f"Capa 1 (Física): {bits}")
             return bits
-
-    @staticmethod
-    def _fmt_mac(mac_int):
-        # Mostrar con cero a la izquierda si es <10, para lucir como '07'
-        return f"{mac_int:02d}"
 
     # --- flujo completo ---
     def enviar(self, dst_pc, app_name, mensaje):
@@ -91,7 +89,7 @@ class PC:
         # Capa 2
         payload_t2 = self.capa_enlace(dst_pc, payload_t3)
         # Capa 1
-        bitstream = self.capa_fisica(dst_pc, mensaje)
+        bitstream = self.capa_fisica(payload_t2)
 
         # Regresa numero binario formato string
         return bitstream
