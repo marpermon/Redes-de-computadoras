@@ -151,3 +151,19 @@ class PC:
 
         # Regresa numero binario formato string
         return bitstream
+
+    def recibir(self, bitstream):
+        print("Iniciando desencapsulamiento.")
+        # Capa 1 (Física)
+        trama = self.capa_fisica(bitstream, enviar=False)
+        # Capa 2 (Enlace de datos)
+        paquete = self.capa_enlace(trama, enviar=False)
+        # Capa 3 (Red)
+        segmento = self.capa_red(paquete, enviar=False)
+        # Capa 4 (Transporte)
+        payload_app = self.capa_transporte(segmento, enviar=False)
+        # Capa 5 (Aplicación)
+        mensaje = self.capa_aplicacion(payload_app, enviar=False)
+
+        # Regresa el mensaje original
+        return mensaje
