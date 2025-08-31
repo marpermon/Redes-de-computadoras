@@ -66,7 +66,7 @@ class PC:
         """
         bits = []
         bits.append(self._to_bits(self.mac, 8))           # MAC src 8b
-        bits.append(self._to_bits(dst_pc.mac, 16))        # MAC dst 16b (para calzar tu ejemplo)
+        bits.append(self._to_bits(dst_pc.mac, 16))        # MAC dst 16b
         bits.append(self._to_bits(self.ip_last, 8))       # IP src 8b
         bits.append(self._to_bits(dst_pc.ip_last, 8))     # IP dst 8b
         bits.append(self._to_bits(port, 16))              # Puerto 16b
@@ -112,10 +112,3 @@ class PC:
             "bitstream": bitstream
         }
 
-
-# --- Ejemplo de uso que reproduce tu salida ---
-if __name__ == "__main__":
-    pc1 = PC("PC1", mac_int=7, ip_last_octet=110)
-    pc2 = PC("PC2", mac_int=3, ip_last_octet=100)
-    # App = "Facebook", mensaje = "Hola"
-    pc1.enviar(pc2, "Facebook", "Hola", imprimir=True)
