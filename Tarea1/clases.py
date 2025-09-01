@@ -56,9 +56,10 @@ class PC:
             return payload
         
         else: # Recibe segmento de capa 3 para convertirlo en payload
-            port, *resto = data.split(',')
+            app_code, *resto = data.split(',')
+            app = next((k for k in self.APP_CODE if self.APP_CODE[k] == int(app_code)), None)
             mensaje = ','.join(resto)
-            print(f"Capa 5 (Aplicación) - Desempaquetado: {mensaje}")
+            print(f"Capa 5 (Aplicación) - Mensaje: {mensaje}, Aplicación: {app}")
             return mensaje 
 
     def capa_transporte(self, data, enviar, app_name=None):
@@ -95,7 +96,6 @@ class PC:
             return trama
         
         else: # Recibe trama de capa 1 para convertirla en paquete
-            print(data.split(','))
             origin_mac, dst_pc_mac, *resto = data.split(',')
             if int(dst_pc_mac) != self.mac:
                 raise ValueError(f"La MAC {dst_pc_mac} no coincide con la MAC esperada {self.mac}.")
