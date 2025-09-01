@@ -168,3 +168,37 @@ class PC:
 
         # Regresa el mensaje original
         return mensaje
+
+# ---------------------- Switch (L2) ----------------------
+class Switch:
+    """
+    Conmutador capa 2 con aprendizaje MAC.
+    forward(bits, puerto_entrada) -> (puerto_salida, bits)
+    """
+    def __init__(self, name):
+        self.name = name
+        self.mac_table = {}    # mac -> puerto
+
+    def forward(self, bits_in, ingress_port, puertos_disponibles):
+        src_mac, dst_mac, *_ = parse_bitstream(bits_in)
+        # Aprendizaje de la MAC origen
+        self.mac_table[src_mac] = ingress_port
+
+        if dst_mac in self.mac_table:
+            out_port = self.mac_table[dst_mac]
+            if out_port == ingress_port:
+                print(f"En {self.name}: destino está en el mismo puerto {ingress_port}, no reenvía.")
+                return None, bits_in
+            print(f"En {self.name}: entra por el puerto {ingress_port}")
+            print(f"En {self.name}: sale por el puerto {out_port}")
+            return out_port, bits_in
+        else:
+            # Flooding (elige el primer puerto distinto al de entrada)
+            out_candidates = [p for p in puertos_disponibles if p != ingress_port]
+            out_port = out_candidates[0] if out_candidates else None
+            print(f"En {self.name}: entra por el puerto {ingress_port}")
+            if out_port is None:
+                print(f"En {self.name}: no hay puerto de salida")
+            else:
+                print(f"En {self.name}: desconocido {dst_mac}, flooding → puerto {out_port}")
+            return out_port, bits_in
