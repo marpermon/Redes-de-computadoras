@@ -18,8 +18,8 @@ def main():
 
     # Menú
     print("Menú de Comunicación")
-    print("1. PC1 a PC2")
-    print("2. PC2 a PC1")
+    print("1. PC de Isai a PC de Junior")
+    print("2. PC de Junior a PC de Isai")
     opcion_dir = input("\nSelecciona una opción: ").strip()
 
     mensaje = input("\nIngrese el mensaje que desea enviar: ").strip()
@@ -36,7 +36,7 @@ def main():
     if opcion_dir == "1":
         print(f"\nHas seleccionado {app_name}.")
         # Envío desde PC1
-        print("\n--- Encapsulación en PC1 ---")
+        print("\n--- Encapsulación en PC Isai ---")
         bits = PC1.enviar(dst_pc=PC2, app_name=app_name, mensaje=mensaje)
 
         # IMPORTANTE: simular ARP/gateway sin tocar la PC:
@@ -55,16 +55,16 @@ def main():
         SW2.forward(bits, ingress_port=5, puertos_disponibles=puertos_sw2)
 
         # Llega a PC2
-        print("\nLlega a PC2")
-        print_capas_desde_bits(bits, titulo="(Vista previa antes de PC2):")
-        print("\n--- Desencapsulación en PC2 ---")
+        print("\nLlega a PC de Junior")
+        print_capas_desde_bits(bits, titulo="(Vista previa antes de PC de Junior):")
+        print("\n--- Desencapsulación en PC de Junior ---")
         recibido = PC2.recibir(bits)
         print(f"\nMensaje final en aplicación: {recibido}")
 
     else:
         print(f"\nHas seleccionado {app_name}.")
         # Envío desde PC2
-        print("\n--- Encapsulación en PC2 ---")
+        print("\n--- Encapsulación en PC de Junior ---")
         bits = PC2.enviar(dst_pc=PC1, app_name=app_name, mensaje=mensaje)
 
         # Primer salto: dirigir a MAC del router (right)
@@ -82,9 +82,9 @@ def main():
         SW1.forward(bits, ingress_port=2, puertos_disponibles=puertos_sw1)
 
         # Llega a PC1
-        print("\nLlega a PC1")
-        print_capas_desde_bits(bits, titulo="(Vista previa antes de PC1):")
-        print("\n--- Desencapsulación en PC1 ---")
+        print("\nLlega a PC de Isai")
+        print_capas_desde_bits(bits, titulo="(Vista previa antes de PC de Isai):")
+        print("\n--- Desencapsulación en PC de Junior ---")
         recibido = PC1.recibir(bits)
         print(f"\nMensaje final en aplicación: {recibido}")
 
