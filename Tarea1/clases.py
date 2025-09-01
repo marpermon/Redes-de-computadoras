@@ -169,6 +169,51 @@ class PC:
         # Regresa el mensaje original
         return mensaje
 
+# ------------------ Utilidades de red --------------------
+def _b2i(b): return int(b, 2)
+def _i2b(n, w): return format(int(n), f"0{w}b")
+
+def parse_bitstream(bits_):
+    """Extrae campos del bitstream (formato de PC.capa_fisica)."""
+    off = 0
+    src_mac = _b2i(bits_[off:off+MAC]); off += MAC
+    dst_mac = _b2i(bits_[off:off+MAC]); off += MAC
+    src_ip  = _b2i(bits_[off:off+IP]);  off += IP
+    dst_ip  = _b2i(bits_[off:off+IP]);  off += IP
+    port    = _b2i(bits_[off:off+Puerto]); off += Puerto
+    app     = _b2i(bits_[off:off+AppCodigo]); off += AppCodigo
+    payload_bits = bits_[off:]
+    return src_mac, dst_mac, src_ip, dst_ip, port, app, payload_bits
+
+def build_bitstream(src_mac, dst_mac, src_ip, dst_ip, port, app, payload_bits):
+    return (_i2b(src_mac, MAC) + _i2b(dst_mac, MAC) + _i2b(src_ip, IP) + _i2b(dst_ip, IP) +
+            _i2b(port, Puerto) + _i2b(app, AppCodigo) + payload_bits)
+
+def rewrite_mac(bits_, new_src=None, new_dst=None):
+    src_mac, dst_mac, src_ip, dst_ip, port, app, payload_bits = parse_bitstream(bits_)
+    if new_src is None: new_src = src_mac
+    if new_dst is None: new_dst = dst_mac
+    return build_bitstream(new_src, new_dst, src_ip, dst_ip, port, app, payload_bits)
+
+def bits_to_trama(bits_):
+    src_mac, dst_mac, src_ip, dst_ip, port, app, payload_bits = parse_bitstream(bits_)
+    # payload está en ASCII en bits
+    mensaje = ''.join(chr(int(payload_bits[i:i+8], 2)) for i in range(0, len(payload_bits), 8))
+    return f"{src_mac},{dst_mac},{src_ip},{dst_ip},{port},{app},{mensaje}"
+
+def print_capas_desde_bits(bits_, titulo=None):
+    if titulo: print(titulo)
+    print(f"Capa 1 (Física): {bits_}")
+    trama = bits_to_trama(bits_)
+    print(f"Capa 2 (Enlace de Datos): {trama}")
+    # Capa 3: quitar MACs
+    _, _, src_ip, dst_ip, port, app, mensaje = trama.split(',', 6)
+    print(f"Capa 3 (Red): {src_ip},{dst_ip},{port},{app},{mensaje}")
+    # Capa 4: quitar IPs
+    print(f"Capa 4 (Transporte): {port},{app},{mensaje}")
+    # Capa 5: quitar puerto
+    print(f"Capa 5 (Aplicación): {app},{mensaje}")
+
 # ---------------------- Switch (L2) ----------------------
 class Switch:
     """
@@ -202,3 +247,59 @@ class Switch:
             else:
                 print(f"En {self.name}: desconocido {dst_mac}, flooding → puerto {out_port}")
             return out_port, bits_in
+
+# ---------------------- Router (L3) ----------------------
+class Router:
+    """
+    Router con dos interfaces (left/right).
+    - Reescribe SOLO MACs (L2) según la red de destino (/4).
+    - Mantiene IP/puerto/payload.
+    - ARP estático por lado: ip -> mac
+    """
+    def __init__(self, name, left_mac, left_ip, right_mac, right_ip):
+        self.name = name
+        self.left_mac  = int(left_mac)
+        self.left_ip   = int(left_ip)
+        self.right_mac = int(right_mac)
+        self.right_ip  = int(right_ip)
+        self.arp_left  = {}
+        self.arp_right = {}
+
+    def set_arp(self, side, ip_int, mac_int):
+        if side == "left":
+            self.arp_left[int(ip_int)] = int(mac_int)
+        else:
+            self.arp_right[int(ip_int)] = int(mac_int)
+
+    @staticmethod
+    def _same_net(a, b, mask=0xF0):   # /4
+        return (a & mask) == (b & mask)
+
+    def route(self, bits_in, ingress_side):
+        print("\nLlega a Router")
+        print_capas_desde_bits(bits_in, titulo="En el Router (entrada):")
+        src_mac, dst_mac, src_ip, dst_ip, port, app, payload_bits = parse_bitstream(bits_in)
+
+        # Verifica que venga dirigido a la MAC de la interfaz de entrada
+        expect = self.left_mac if ingress_side == "left" else self.right_mac
+        if dst_mac != expect:
+            print(f"En {self.name}: la trama no es para esta interfaz (dst_mac={dst_mac:02X} ≠ {expect:02X})")
+            return None, bits_in
+
+        # Decide salida por prefijo
+        if self._same_net(dst_ip, self.left_ip):
+            egress = "left";  src_mac_out = self.left_mac;  dst_mac_out = self.arp_left.get(dst_ip)
+        elif self._same_net(dst_ip, self.right_ip):
+            egress = "right"; src_mac_out = self.right_mac; dst_mac_out = self.arp_right.get(dst_ip)
+        else:
+            print(f"En {self.name}: sin ruta hacia IP {dst_ip}")
+            return None, bits_in
+
+        if dst_mac_out is None:
+            print(f"En {self.name}: falta ARP en {egress} para IP {dst_ip}")
+            return None, bits_in
+
+        out_bits = build_bitstream(src_mac_out, dst_mac_out, src_ip, dst_ip, port, app, payload_bits)
+        print("\nSale de Router")
+        print_capas_desde_bits(out_bits, titulo="En el Router (salida):")
+        return egress, out_bits
